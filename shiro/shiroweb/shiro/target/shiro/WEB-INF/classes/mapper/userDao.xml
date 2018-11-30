@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.lxp.shiro.dao.UserDao">
+
+    <select id="qryRolesByUserName" resultType="String">
+        SELECT role FROM user_role WHERE username = #{userName}
+    </select>
+
+    <select id="qryPassWordByUserName" resultType="String">
+        SELECT password FROM user WHERE username = #{userName}
+    </select>
+
+    <select id="qryPermissionsByUserName" resultType="String">
+        SELECT permissions FROM role p JOIN user_role r ON p.role = r.role WHERE r.username = #{userName}
+    </select>
+</mapper>

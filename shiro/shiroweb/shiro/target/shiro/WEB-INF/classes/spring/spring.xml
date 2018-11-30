@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:aop="http://www.springframework.org/schema/aop" xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+    http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/context
+    http://www.springframework.org/schema/context/spring-context.xsd
+    http://www.springframework.org/schema/aop
+    http://www.springframework.org/schema/aop/spring-aop.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+    <!-- 自动扫描 创建bean-->
+    <context:component-scan base-package="com.lxp.shiro.*"/>
+    <!-- 引入spring-mybatis 加载 -->
+    <import resource="spring-mybatis.xml"/>
+    <!-- 自定义Realm -->
+    <bean id = "realm" class="com.lxp.shiro.proxy.shiro.CustomRealManager"/>
+    <!-- 安全管理器 -->
+    <bean class="org.apache.shiro.web.mgt.DefaultWebSecurityManager" id="securityManager">
+        <property name="realm" ref="realm"></property>
+        <property name="sessionManager" ref="sessionManager"/>
+    </bean>
+    <!-- shiro 过滤器核心配置 -->
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <!-- Shiro的核心安全接口,这个属性是必须的 -->
+        <property name="securityManager" ref="securityManager"/>
+        <!-- 身份认证失败，则跳转到登录页面的配置 -->
+        <property name="loginUrl" value="/login.jsp"/>
+        <!-- 权限认证失败，则跳转到指定页面 -->
+        <property name="unauthorizedUrl" value="/403.jsp"/>
+        <!-- Shiro连接约束配置,即过滤链的定义 -->
+        <property name="filterChainDefinitions">
+            <value>
+                <!--anon 表示匿名访问，不需要认证以及授权-->
+                /login.jsp = anon
+                /login = anon
+                <!--authc表示需要认证 没有进行身份认证是不能进行访问的-->
+                /testRole = customRoles["supuser"]
+                /testRole1 = customRoles["admin"]
+                /* = roles["admin"]
+                /* = authc
+            </value>
+        </property>
+        <property name="filters">
+            <util:map>
+                <entry key="customRoles" value="customShiroRolesFilter"/>
+            </util:map>
+        </property>
+    </bean>
+
+    <bean class="com.lxp.shiro.proxy.shiro.CustomShiroRolesFilter" id="customShiroRolesFilter"/>
+
+    <aop:config proxy-target-class="true"/>
+    <!-- 保证实现了Shiro内部lifecycle函数的bean执行 -->
+    <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+    <!-- 开启Shiro注解 -->
+    <bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+        <property name="securityManager" ref="securityManager"/>
+    </bean>
+
+    <bean class="redis.clients.jedis.JedisPoolConfig" id="jedisPoolConfig"/>
+    <bean class="redis.clients.jedis.JedisPool" id="jedisPool">
+        <constructor-arg index="0" ref="jedisPoolConfig"/>
+        <constructor-arg index="1" value="127.0.0.1" type="java.lang.String"/>
+        <constructor-arg index="2" value="6379" type="int"/>
+    </bean>
+
+    <bean id="sessionManager" class="com.lxp.shiro.proxy.session.CustomSessionManager">
+        <property name="sessionDAO" ref="redisSession"/>
+    </bean>
+    <bean class="com.lxp.shiro.proxy.session.RedisSession" id="redisSession"/>
+</beans>
